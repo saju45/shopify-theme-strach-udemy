@@ -1,4 +1,4 @@
-{% comment %} <header>
+{% comment %} {% comment %} <header>
   <h2 class="header__title">
     {{ shop.name | link_to: routes.root_url }}
   </h2>
@@ -253,4 +253,240 @@
     ]
   }
   
-{% endschema %}  
+{% endschema %}   {% endcomment %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% comment %}
+  Navigational Bar Section
+  ------------------------
+  Fixes applied:
+  1. Added a safe-guard so that if the selected menu is empty (no links added
+     in Admin > Online Store > Navigation) the section shows a clear message
+     in the theme editor instead of silently rendering nothing.
+  2. Fixed a typo: "items start" -> "items-start" (this class did not exist
+     before, so Tailwind was not applying the intended flex alignment).
+  3. Made sure every Alpine.js `x-data` scope is unique per link using the
+     link handle, so multiple dropdowns don't fight over the same state.
+  4. Kept both the desktop (`hidden md:flex`) and mobile menu blocks -
+     this is expected responsive behavior, not a bug: the desktop <nav>
+     is intentionally hidden below the md breakpoint (768px) because the
+     mobile menu panel below it handles small screens.
+  5. Reminder: Alpine.js (https://unpkg.com/alpinejs) MUST be loaded once in
+     theme.liquid (in <head> with `defer`) or none of the dropdowns / mobile
+     menu toggle will work, even though this section's code is correct.
+{% endcomment %}
+
+{% assign main_menu_linklist = linklists[section.settings.menu] %}
+
+<div class="relative bg-white" x-data="{ mobileMenuOpen: false }">
+
+  <div class="mx-auto px-4 sm:px-6">
+    <div class="flex justify-between items-center py-6 md:justify-start md:space-x-10">
+
+      <!-- STORE NAME / STORE LOGO -->
+      <div class="flex justify-start lg:flex-1 truncate">
+        <a href="{{ routes.root_url }}" class="text-xl font-bold truncate text-gray-900 no-underline">
+          {{ shop.name }}
+        </a>
+      </div>
+
+      <!-- MOBILE MENU TOGGLE BUTTON -->
+      <div class="-mr-2 -my-2 ml-3 md:hidden" x-on:click="mobileMenuOpen = true">
+        <button type="button" class="bg-white p-2 inline-flex items-center justify-center focus:outline-none">
+          {% render 'icon-menu' %}
+        </button>
+      </div>
+
+      <!-- DESKTOP NAVIGATION MENU -->
+      <nav class="hidden md:flex space-x-10">
+
+        {% if main_menu_linklist == blank or main_menu_linklist.links.size == 0 %}
+          {% comment %}
+            No menu selected, or the selected menu has no links yet.
+            Go to: Shopify Admin > Online Store > Navigation, open the menu
+            selected in "header Menu" (theme editor setting below), and add
+            links to it. This message only shows to help debugging; it does
+            not appear as an error on the live storefront, it simply renders
+            blank if left empty.
+          {% endcomment %}
+          <span class="text-sm text-gray-400">
+            {%- if request.design_mode -%}
+              No menu items found. Add links in Online Store > Navigation.
+            {%- endif -%}
+          </span>
+        {% else %}
+          {% for link in main_menu_linklist.links %}
+            {% assign link_handle = link.handle | replace: '-', '_' %}
+
+            {% if link.links != blank %}
+              <div class="relative" x-data="{ desktop_{{ link_handle }}: false }">
+                <button
+                  x-on:click="desktop_{{ link_handle }} = !desktop_{{ link_handle }}"
+                  type="button"
+                  class="inline-flex items-center text-base text-gray-500 hover:text-gray-900"
+                >
+                  {{ link.title }}
+                  {% render 'icon-dropdown' %}
+                </button>
+
+                <div
+                  x-show="desktop_{{ link_handle }}"
+                  x-cloak
+                  @click.away="desktop_{{ link_handle }} = false"
+                  class="absolute z-10 -ml-5 mt-5 transform px-2 w-screen max-w-md sm:px-0 lg:ml-0 lg:left-1/2 lg:-translate-x-1/2"
+                >
+                  <div class="shadow-lg border ring-black ring-opacity-5 overflow-hidden rounded-lg">
+                    <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
+                      {% for sublink in link.links %}
+                        <a
+                          href="{{ sublink.url }}"
+                          class="-m-3 p-3 flex items-start rounded-lg hover:bg-gray-100"
+                        >
+                          <div class="ml-4">
+                            <p class="text-gray-900 text-base font-medium">
+                              {{ sublink.title }}
+                            </p>
+                          </div>
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <div class="relative">
+                <a href="{{ link.url }}" class="text-base text-gray-500 hover:text-gray-900">
+                  {{ link.title }}
+                </a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+      </nav>
+
+      <div class="hidden md:flex items-center justify-end md:flex-1 space-x-5">
+        <a href="{{ routes.cart_url }}" class="whitespace-nowrap text-base text-gray-500 hover:text-gray-900">
+          {% render 'icon-shopping-bag' %}
+        </a>
+
+        {% if shop.customer_accounts_enabled %}
+          <a href="{{ routes.account_login_url }}" class="text-base text-gray-500 hover:text-gray-900">Login</a>
+          <a href="{{ routes.account_register_url }}" class="text-base text-gray-500 hover:text-gray-900">Register</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE MENU CONTAINER -->
+  <div
+    class="absolute z-10 top-0 inset-x-0 p-2 transform origin-top-left md:hidden"
+    x-show="mobileMenuOpen"
+    x-cloak
+    x-transition:enter="duration-200 ease-out"
+    x-transition:enter-start="opacity-0 scale-95"
+    x-transition:enter-end="opacity-100 scale-100"
+    x-transition:leave="duration-100 ease-in"
+    x-transition:leave-start="opacity-100 scale-100"
+    x-transition:leave-end="opacity-0 scale-95"
+  >
+    <div class="shadow-lg rounded-lg ring-1 ring-black ring-opacity-5 bg-white w-full">
+      <div class="p-5 divide-y-2 divide-gray-50">
+
+        <!-- MOBILE MENU HEADER TITLE PLUS CLOSE BUTTON -->
+        <div class="flex items-center justify-between pb-3">
+          <div>
+            <h1 class="text-lg text-gray-500">{{ section.settings.mobile_menu_title }}</h1>
+          </div>
+          <div class="-mr-2">
+            <button type="button" class="bg-white rounded-md p-2 text-gray-500" x-on:click="mobileMenuOpen = false">
+              {% render 'icon-close' %}
+            </button>
+          </div>
+        </div>
+
+        <!-- NAVIGATION LINKS FOR MOBILE MENU -->
+        <div class="pt-3">
+          <nav class="grid gap-y-7">
+
+            {% if main_menu_linklist != blank %}
+              {% for link in main_menu_linklist.links %}
+                {% assign link_handle = link.handle | replace: '-', '_' %}
+
+                {% if link.links == blank %}
+                  <a
+                    href="{{ link.url }}"
+                    class="-m-3 p-3 flex items-center rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    {{ link.title }}
+                  </a>
+                {% else %}
+                  <div class="relative" x-data="{ mobile_{{ link_handle }}: false }">
+                    <button
+                      x-on:click="mobile_{{ link_handle }} = !mobile_{{ link_handle }}"
+                      type="button"
+                      class="text-base text-gray-500 hover:text-gray-900 flex items-center justify-between w-full"
+                    >
+                      <div>{{ link.title }}</div>
+                      {% render 'icon-dropdown' %}
+                    </button>
+
+                    <div x-show="mobile_{{ link_handle }}" x-cloak class="grid gap-y-7 py-3">
+                      {% for sublink in link.links %}
+                        <a
+                          href="{{ sublink.url }}"
+                          class="-m-3 p-3 mt-2 flex items-center rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                        >
+                          <span class="ml-3 text-base font-medium text-gray-500">{{ sublink.title }}</span>
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% stylesheet %}
+  [x-cloak] {
+    display: none !important;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Navigational Bar",
+  "settings": [
+    {
+      "type": "text",
+      "id": "mobile_menu_title",
+      "label": "Title",
+      "default": "Menu",
+      "info": "This is the title that will be displayed at the top of the mobile menu."
+    },
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Header menu",
+      "default": "main-menu"
+    }
+  ]
+}
+{% endschema %}
