@@ -24,13 +24,15 @@
     {% render 'meta-tags' %}
 
     {{ content_for_header }}
+
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
   </head>
 
   <body>
     {% sections 'header-group' %}
-
     {{ content_for_layout }}
 
-    {% sections 'footer-group' %}
+    {% comment %} {% sections 'footer-group' %} {% endcomment %}
   </body>
 </html>
