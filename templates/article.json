@@ -7,14 +7,41 @@
  * made to this file may be overwritten.
  * ------------------------------------------------------------
  */
+// {
+//   "sections": {
+//     "main": {
+//       "type": "article",
+//       "settings": {}
+//     }
+//   },
+//   "order": [
+//     "main"
+//   ]
+// }
+
 {
   "sections": {
     "main": {
-      "type": "article",
-      "settings": {}
+      "type": "template-article",
+      "blocks": {
+        "Title": {
+          "type": "article_title"
+        },
+        "Author": {
+          "type": "article_author"
+        },
+        "Date": {
+          "type": "article_date"
+        },
+        "Content": {
+          "type": "article_content"
+        },
+        "Image": {
+          "type": "article_image"
+        }
+      },
+      "block_order": ["Title", "Author", "Date", "Image", "Content"]
     }
   },
-  "order": [
-    "main"
-  ]
+  "order": ["main"]
 }
