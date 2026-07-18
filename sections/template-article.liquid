@@ -1,97 +1,589 @@
+{% comment %}
+  Design direction: quiet editorial / literary reading page.
+  - Palette: warm paper background, near-black ink, deep pine accent,
+    warm terracotta reserved only for errors (not decoration).
+  - Type: Fraunces (display serif, headline + bylines) + Inter (body/UI)
+    + IBM Plex Mono (small caps-style eyebrow labels, dates, counts).
+  - Signature: comments styled as margin annotations - a thin accent
+    rule on the left of each comment, with an initial "stamp" instead
+    of a generic avatar circle.
+{% endcomment %}
 
-<article class="py-8">
-    {% for item in section.blocks %}
-    
+<article
+class="article-page"
+class="py-8"
+itemscope 
+itemtype="http://schema.org/BlogPosting">
+  {% for item in section.blocks %}
     {% case item.type %}
-        {% when "article_title" %}
-             <div class="flex items-center justify-center">
-                <div class="max-w-7xl text-center">
-                    <a href="{{blog.url}}" class="text-base uppercase text-gray-500 hover:text-gray-900 font-bold">{{blog.title}}</a>
-                    <h1 class="text-4xl md:text-6xl font-medium">{{article.title}}</h1>
-                </div>
 
-             </div>
-        {% when "article_author" %}
+      {% when "article_title" %}
+        <header class="article-hero">
+          <a href="{{ blog.url }}" class="article-hero__eyebrow">{{ blog.title }}</a>
+          <h1 class="article-hero__title" itemprop="headline">{{ article.title }}</h1>
+        </header>
 
+      {% when "article_author" %}
+        {% if section.settings.enable_author %}
+          <div class="article-meta__item" itemtype="http://schema.org/Person" itemprop="author">
+            <span class="article-meta__label">Written by</span>
+            <span class="article-meta__value" itemprop="name">{{ article.author }}</span>
+          </div>
+        {% endif %}
 
-            <div class="flex items-center justify-center">
-                <div class="max-w-7xl text-center">
-                      {% if section.settings.enable_author %}
-                <small>{{article.author}}</small>
-            {% endif %}
-                </div>
+      {% when "article_date" %}
+        {% if section.settings.enable_date %}
+          <div class="article-meta__item">
+            <span class="article-meta__label">Published</span>
+            <time class="article-meta__value" itemprop="datePublished">{{ article.published_at | date: "%B %d, %Y" }}</time>
+          </div>
+        {% endif %}
 
-             </div>
+      {% when "article_image" %}
+        <div class="article-cover">
+          {% if section.settings.enable_image %}
+            <img
+              class="article-cover__img"
+              src="{{ article.image | img_url: '1200x' }}"
+              alt="{{ article.title }}"
+              loading="lazy"
+              itemprop="image"/>    
+          {% else %}
+            {% assign placholder_image = 'lifestyle-2' %}
+            {{ placholder_image | placeholder_svg_tag: 'article-cover__img' }}
+          {% endif %}
+        </div>
 
-          
-        {% when "article_date" %}
+      {% when "article_content" %}
+        {% if section.settings.enable_content %}
+          <div class="article-body" itemprop="articleBody">
+            {{ article.content }}
+          </div>
+        {% endif %}
 
-            <div class="flex items-center justify-center">
-                <div class="max-w-7xl text-center">
-                    {% if section.settings.enable_date %}
-                        <small>{{article.published_at | date: "%B %d, %Y"}}</small>
-                    {% endif %}
-                </div>
-            </div>
-        {% when "article_image" %}
-
-            <div class="max-w-7xl bg-blue-100 rounded-lg mx-2 md:mx-auto overflow-hidden my-4 ">  
-                
-            {% if section.settings.enable_image %}
-                <img  class="w-full h-80 md:h-96 object-cover object-center p-5" src="{{article.image | img_url: 'medium'}}" alt="{{article.title}}">
-
-                {% else %}
-                    {%  assign  placholder_image = 'lifestyle-2' %} 
-                    {{placholder_image | placeholder_svg_tag: 'w-full h-80 md:h-96 object-cover object-center p-5' }}
-            {% endif %}
-            </div>
-
-
-        {% when "article_content" %}
-
-            {% if section.settings.enable_content %}
-                <div class="flex items-center justify-center">
-                    <div class="max-w-7xl text-center">
-                    {{article.content}}
-
-                    </div>
-                </div>
-            {% endif %}
     {% endcase %}
-    
-{% endfor %}
+  {% else %}
+    {% if request.design_mode %}
+      <p class="article-empty-hint">
+        No blocks added. Click "Add block" above to show the title, author, date, image and content.
+      </p>
+    {% endif %}
+  {% endfor %}
 
 </article>
 
 
+{% if blog.comments_enabled? %}
 
-<h1>
-{{article.title}}
-</h1>
+  <section class="discussion">
+    <div class="discussion__inner">
 
-{% if section.settings.enable_author %}
-  <small>{{article.author}}</small>
+      {% if article.comments_count > 0 %}
+        <div class="discussion__heading">
+          <h2 class="discussion__title">Discussion</h2>
+          <span class="discussion__count">{{ article.comments_count }}</span>
+        </div>
+
+        <ul class="comment-list">
+          {% paginate article.comments by 5 %}
+
+            {% for comment in article.comments %}
+              <li class="comment">
+                <span class="comment__stamp">{{ comment.author | slice: 0, 1 | upcase }}</span>
+                <div class="comment__body">
+                  <div class="comment__meta">
+                    <span class="comment__author">{{ comment.author }}</span>
+                    <span class="comment__date">{{ comment.created_at | date: "%B %d, %Y" }}</span>
+                  </div>
+                  <p class="comment__text">{{ comment.content }}</p>
+                </div>
+              </li>
+            {% endfor %}
+
+            {% if paginate.pages > 1 %}
+              <li class="pagination" role="navigation" aria-label="Comments pagination">
+                {% if paginate.previous %}
+                  <a href="{{ paginate.previous.url }}" class="pagination__link">&larr; Previous</a>
+                {% endif %}
+
+                <span class="pagination__pages">
+                  {% for part in paginate.parts %}
+                    {% if part.is_link %}
+                      <a href="{{ part.url }}" class="pagination__page">{{ part.title }}</a>
+                    {% else %}
+                      <span class="pagination__page pagination__page--current">{{ part.title }}</span>
+                    {% endif %}
+                  {% endfor %}
+                </span>
+
+                {% if paginate.next %}
+                  <a href="{{ paginate.next.url }}" class="pagination__link">Next &rarr;</a>
+                {% endif %}
+              </li>
+            {% endif %}
+
+          {% endpaginate %}
+        </ul>
+      {% else %}
+        <div class="discussion__empty">
+          <p>No comments yet. Be the first to share your thoughts.</p>
+        </div>
+      {% endif %}
+
+    </div>
+  </section>
+
+  <section class="comment-form-section">
+    <div class="comment-form-card">
+
+      <h3 class="comment-form-card__title">Join the discussion</h3>
+
+      {% form 'new_comment', article %}
+
+        {% comment %}
+          form.errors / form.posted_successfully? are only present on the
+          single response right after a real submit + redirect - on a
+          normal page load neither is set, so no banner appears unless
+          the visitor actually clicked Submit Comment.
+        {% endcomment %}
+
+        {% comment %}
+          data-comment-banner="cached" is default-hidden via [hidden] below.
+          Shopify may serve a cached copy of this HTML (Fastly full-page
+          cache) to a visitor who never submitted anything - if that
+          happens this markup would otherwise show a false success/error
+          message. The inline script further down only reveals it when
+          sessionStorage confirms *this browser* just submitted the form,
+          then clears the flag so a later reload/back-button never re-shows it.
+        {% endcomment %}
+        {% if form.errors %}
+          <div class="form-banner form-banner--error" role="alert" data-comment-banner="cached" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <p class="form-banner__title">Your comment wasn't submitted</p>
+              <ul class="form-banner__list">
+                {% for field in form.errors %}
+                  <li>{{ form.errors.messages[field] }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        {% elsif form.posted_successfully? %}
+          <div class="form-banner form-banner--success" role="status" data-comment-banner="cached" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="form-banner__title">
+              {% if blog.moderated? %}
+                Thanks - your comment is awaiting approval.
+              {% else %}
+                Your comment has been posted.
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="comment_author">Name</label>
+            <input type="text" name="comment[author]" id="comment_author" placeholder="Jane Doe" value="{{ form.author }}" required>
+          </div>
+          <div class="form-field">
+            <label for="comment_email">Email</label>
+            <input type="email" name="comment[email]" id="comment_email" placeholder="jane@example.com" value="{{ form.email }}" required>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="comment_body">Comment</label>
+          <textarea name="comment[body]" id="comment_body" rows="5" placeholder="Write your comment here..." required>{{ form.body }}</textarea>
+        </div>
+
+        <button type="submit" class="form-submit" data-comment-submit>Submit comment</button>
+
+      {% endform %}
+
+      <script>
+        (function () {
+          var FLAG = 'commentFormJustSubmitted';
+          var form = document.currentScript.closest('.comment-form-card').querySelector('form');
+          var banner = document.querySelector('[data-comment-banner="cached"]');
+
+          // Mark that *this* browser is about to submit, right before it does.
+          if (form) {
+            form.addEventListener('submit', function () {
+              try { sessionStorage.setItem(FLAG, '1'); } catch (e) {}
+            });
+          }
+
+          // Only reveal a rendered banner if this browser set that flag -
+          // otherwise it's a cached page nobody here actually submitted.
+          if (banner) {
+            var justSubmitted = false;
+            try { justSubmitted = sessionStorage.getItem(FLAG) === '1'; } catch (e) {}
+
+            if (justSubmitted) {
+              banner.removeAttribute('hidden');
+            }
+            try { sessionStorage.removeItem(FLAG); } catch (e) {}
+          }
+        })();
+      </script>
+    </div>
+  </section>
+
 {% endif %}
 
-{% if section.settings.enable_date %}
-  <small>{{article.published_at | date: "%B %d, %Y"}}</small>
-{% endif %}
 
-{% if section.settings.enable_image %}
-  <img src="{{article.image | img_url: 'medium'}}" alt="{{article.title}}">
-{% endif %}
+{% stylesheet %}
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
 
-{% if section.settings.enable_content %}
-  <div class="article-content">
-    {{article.content}}
-  </div>
-{% endif %}
+  .article-page,
+  .discussion,
+  .comment-form-section {
+    --color-paper: #fbfaf7;
+    --color-ink: #201d1a;
+    --color-muted: #746c63;
+    --color-border: #e6e0d6;
+    --color-accent: #2f5d50;
+    --color-accent-soft: #e8efec;
+    --color-error: #a3352b;
+    --color-error-soft: #fbeeec;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    background: var(--color-paper);
+  }
+
+  /* ---------- Hero ---------- */
+  .article-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 1.5rem 3rem;
+  }
+
+  .article-hero {
+    max-width: 46rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .article-hero__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  .article-hero__eyebrow:hover {
+    border-bottom-color: var(--color-accent);
+  }
+
+  .article-hero__title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2.25rem, 5vw, 3.75rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin: 0.6rem 0 0;
+  }
+
+  /* ---------- Meta / byline row ---------- */
+  .article-page .article-meta__item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1.5rem;
+    position: relative;
+  }
+  .article-page .article-meta__item + .article-meta__item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.15rem;
+    bottom: 0.15rem;
+    width: 1px;
+    background: var(--color-border);
+  }
+  .article-meta__label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  .article-meta__value {
+    font-size: 0.95rem;
+    margin-top: 0.15rem;
+  }
+
+  /* ---------- Cover image ---------- */
+  .article-cover {
+    max-width: 56rem;
+    width: 100%;
+    margin: 2.5rem 0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .article-cover__img {
+    width: 100%;
+    height: clamp(16rem, 40vw, 28rem);
+    object-fit: cover;
+    display: block;
+  }
+
+  /* ---------- Body copy ---------- */
+  .article-body {
+    max-width: 42rem;
+    width: 100%;
+    font-size: 1.09rem;
+    line-height: 1.75;
+    color: var(--color-ink);
+  }
+  .article-body p { margin: 0 0 1.25em; }
+  .article-body h2,
+  .article-body h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    margin: 1.6em 0 0.6em;
+  }
+  .article-body a { color: var(--color-accent); }
+  .article-body img { max-width: 100%; border-radius: 4px; }
+
+  .article-empty-hint {
+    text-align: center;
+    color: var(--color-muted);
+    padding: 3rem 0;
+  }
+
+  /* ---------- Discussion / comments ---------- */
+  .discussion {
+    border-top: 1px solid var(--color-border);
+    padding: 3rem 1.5rem;
+  }
+  .discussion__inner {
+    max-width: 42rem;
+    margin: 0 auto;
+  }
+  .discussion__heading {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 1.75rem;
+  }
+  .discussion__title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 0;
+  }
+  .discussion__count {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    background: var(--color-accent-soft);
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+  }
+  .discussion__empty {
+    color: var(--color-muted);
+    padding: 1.5rem 0;
+  }
+
+  .comment-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .comment {
+    display: flex;
+    gap: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--color-border);
+    transition: border-color 0.15s ease;
+  }
+  .comment:hover {
+    border-left-color: var(--color-accent);
+  }
+  .comment__stamp {
+    flex-shrink: 0;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+  .comment__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.25rem;
+  }
+  .comment__author {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .comment__date {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-muted);
+  }
+  .comment__text {
+    margin: 0;
+    line-height: 1.6;
+    color: var(--color-ink);
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding-top: 0.5rem;
+    border: none !important;
+    padding-left: 0 !important;
+  }
+  .pagination__link {
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .pagination__link:hover { text-decoration: underline; }
+  .pagination__pages { display: flex; gap: 0.35rem; }
+  .pagination__page {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+  .pagination__page--current {
+    background: var(--color-accent);
+    color: #fff;
+  }
+
+  /* ---------- Comment form ---------- */
+  .comment-form-section {
+    padding: 0 1.5rem 4rem;
+  }
+  .comment-form-card {
+    max-width: 42rem;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 2rem;
+  }
+  .comment-form-card__title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin: 0 0 1.25rem;
+  }
+
+  .form-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .form-banner svg { width: 1.15rem; height: 1.15rem; flex-shrink: 0; margin-top: 0.1rem; }
+  .form-banner__title { font-weight: 600; margin: 0; font-size: 0.92rem; }
+  .form-banner__list {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+  }
+  .form-banner--error {
+    background: var(--color-error-soft);
+    color: var(--color-error);
+  }
+  .form-banner--success {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  @media (min-width: 640px) {
+    .form-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  .form-field { margin-bottom: 1rem; }
+  .form-field label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-bottom: 0.4rem;
+  }
+  .form-field input,
+  .form-field textarea {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--color-ink);
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    padding: 0.65rem 0.8rem;
+    background: var(--color-paper);
+  }
+  .form-field input:focus,
+  .form-field textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+  }
+  .form-field textarea { resize: vertical; }
+
+  .form-submit {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #fff;
+    background: var(--color-accent);
+    border: none;
+    border-radius: 5px;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .form-submit:hover { background: #24473d; }
+{% endstylesheet %}
 
 
-
-
-
-{%  schema  %} 
+{% schema %}
 {
     "name": "Template Article",
      "settings": [
@@ -100,28 +592,28 @@
             "id": "enable_author",
              "default": true,
              "label": "Display Author name "
-            
+
         },
         {
             "type": "checkbox",
             "id": "enable_date",
              "default": true,
              "label": "Display Published Date"
-            
+
         },
         {
             "type": "checkbox",
             "id": "enable_image",
              "default": true,
              "label": "Display Article Image"
-            
+
         },
         {
             "type": "checkbox",
             "id": "enable_content",
              "default": true,
              "label": "Display Article Content"
-            
+
         }
      ],
      "blocks": [
@@ -150,6 +642,18 @@
             "name": " Article Content ",
             "limit": 1
         }
+     ],
+     "presets": [
+        {
+            "name": "Template Article",
+            "blocks": [
+                { "type": "article_title" },
+                { "type": "article_author" },
+                { "type": "article_date" },
+                { "type": "article_image" },
+                { "type": "article_content" }
+            ]
+        }
      ]
 }
-{% endschema %}   
+{% endschema %}
