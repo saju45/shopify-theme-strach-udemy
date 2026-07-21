@@ -100,7 +100,7 @@ itemtype="http://schema.org/BlogPosting">
               </li>
             {% endfor %}
 
-            {% if paginate.pages > 1 %}
+            {% comment %} {% if paginate.pages > 1 %}
               <li class="pagination" role="navigation" aria-label="Comments pagination">
                 {% if paginate.previous %}
                   <a href="{{ paginate.previous.url }}" class="pagination__link">&larr; Previous</a>
@@ -120,8 +120,9 @@ itemtype="http://schema.org/BlogPosting">
                   <a href="{{ paginate.next.url }}" class="pagination__link">Next &rarr;</a>
                 {% endif %}
               </li>
-            {% endif %}
+            {% endif %} {% endcomment %}
 
+                {%  render 'pagination', paginate: paginate %}
           {% endpaginate %}
         </ul>
       {% else %}
@@ -581,6 +582,42 @@ itemtype="http://schema.org/BlogPosting">
   }
   .form-submit:hover { background: #24473d; }
 {% endstylesheet %}
+
+
+
+
+<script type="application/ld+json">
+{
+"@context": "http://schema.org",
+"@type": "BlogPosting",
+"headline": {{ article.title | json}},
+"articleBody": {{ article.content | strip_html | json}},
+{% if article.excerpt != blank %}
+"description": {{ article.excerpt | strip_html | json}}
+{% endif %}
+{% if article.image %}
+"image":[
+  {{article.image | img_url: "medium" | prepend: 'https:' | json}}
+]
+
+{% endif %}
+"datePublished": {{ article.published_at | date: "%Y-%m-%d" | json}},
+"dateModified": {{ article.updated_at | date: "%Y-%m-%d" | json}},
+"author": {
+  "@type": "Person",
+  "name": {{ article.author | json}}
+},
+"publisher": {
+  "@type": "Organization",
+  "name": {{ shop.name | json}},
+  "logo": {
+    "@type": "ImageObject",
+    "url": {{ shop.logo | img_url: 'medium' | prepend: 'https:' | json}}
+  }
+}
+}
+
+</script>
 
 
 {% schema %}
