@@ -7,12 +7,24 @@
  * made to this file may be overwritten.
  * ------------------------------------------------------------
  */
+// {
+//   "sections": {
+//     "main": {
+//       "type": "featured-collection",
+//       "settings": {}
+//     }
+//   },
+//   "order": ["main"]
+// }
+
 {
   "sections": {
-    "main": {
+    "featured-collection": {
       "type": "featured-collection",
-      "settings": {}
+      "settings": {
+        "featured_collection": "all"
+      }
     }
   },
-  "order": ["main"]
+  "order": ["featured-collection"]
 }
