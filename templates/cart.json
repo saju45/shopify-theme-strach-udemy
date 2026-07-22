@@ -7,14 +7,35 @@
  * made to this file may be overwritten.
  * ------------------------------------------------------------
  */
+// {
+//   "sections": {
+//     "main": {
+//       "type": "cart",
+//       "settings": {}
+//     }
+//   },
+//   "order": [
+//     "main"
+//   ]
+// }
+
 {
   "sections": {
-    "main": {
+    "template": {
       "type": "cart",
-      "settings": {}
+      "blocks": {
+        "subtotal": {
+          "type": "subtotal"
+        },
+        "update-button": {
+          "type": "update_button"
+        },
+        "checkout-button": {
+          "type": "checkout_button"
+        }
+      },
+      "block_order": ["subtotal", "update-button", "checkout-button"]
     }
   },
-  "order": [
-    "main"
-  ]
+  "order": ["template"]
 }
