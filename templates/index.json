@@ -22,9 +22,21 @@
     "featured-collection": {
       "type": "featured-collection",
       "settings": {
+<<<<<<< HEAD
         "featured_collection": "all"
       }
     }
   },
   "order": ["featured-collection"]
+=======
+        "title": "Featured Collection",
+        "featured_collection": "automated-collection",
+        "number_of_products_to_show": 4
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+>>>>>>> 6507f48fcb2c013913a36ad2ca12da6a76213bda
 }
